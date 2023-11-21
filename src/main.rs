@@ -17,9 +17,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     DecodeToken(sub_commands::decode_token::DecodeTokenSubCommand),
+    Melt(sub_commands::melt::MeltSubCommand),
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Parse input
     let args: Cli = Cli::parse();
 
@@ -27,5 +29,6 @@ fn main() -> Result<()> {
         Commands::DecodeToken(sub_command_args) => {
             sub_commands::decode_token::decode_token(sub_command_args)
         }
+        Commands::Melt(sub_command_args) => sub_commands::melt::melt(sub_command_args).await,
     }
 }
