@@ -213,7 +213,6 @@ checksum = "a2bd12c1caf447e69cd4528f47f94d203fd2582878ecb9e9465484c4148a8223"
 [[package]]
 name = "cashu"
 version = "0.4.1-ALPHA"
-source = "git+https://github.com/thesimplekid/cashu-crab#a1eae5f76ccb851b869946105043fbc57c3179d0"
 dependencies = [
  "base64",
  "bitcoin 0.30.2",
@@ -233,7 +232,6 @@ dependencies = [
 [[package]]
 name = "cashu-sdk"
 version = "0.1.0"
-source = "git+https://github.com/thesimplekid/cashu-crab#a1eae5f76ccb851b869946105043fbc57c3179d0"
 dependencies = [
  "async-trait",
  "cashu",

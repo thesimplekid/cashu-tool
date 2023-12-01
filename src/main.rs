@@ -1,7 +1,8 @@
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Command, Parser, Subcommand};
 
 mod sub_commands;
+mod types;
 
 /// Simple CLI application to interact with cashu
 #[derive(Parser)]
@@ -18,6 +19,7 @@ struct Cli {
 enum Commands {
     DecodeToken(sub_commands::decode_token::DecodeTokenSubCommand),
     Melt(sub_commands::melt::MeltSubCommand),
+    Receive(sub_commands::receive::ReceiveSubCommand),
 }
 
 #[tokio::main]
@@ -30,5 +32,8 @@ async fn main() -> Result<()> {
             sub_commands::decode_token::decode_token(sub_command_args)
         }
         Commands::Melt(sub_command_args) => sub_commands::melt::melt(sub_command_args).await,
+        Commands::Receive(sub_command_args) => {
+            sub_commands::receive::receive(sub_command_args).await
+        }
     }
 }
