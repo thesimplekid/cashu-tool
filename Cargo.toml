@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-cashu-sdk = { path = "../cashu-crab/main/crates/cashu-sdk" }
+cashu-sdk = { path = "../cashu-crab/out_of_bounts/crates/cashu-sdk" }
 clap = { version = "4.4.8", features = ["derive", "env"] }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"

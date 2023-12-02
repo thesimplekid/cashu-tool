@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Command, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 mod sub_commands;
 mod types;
@@ -20,6 +20,7 @@ enum Commands {
     DecodeToken(sub_commands::decode_token::DecodeTokenSubCommand),
     Melt(sub_commands::melt::MeltSubCommand),
     Receive(sub_commands::receive::ReceiveSubCommand),
+    CreateToken(sub_commands::create_token::CreateTokenSubCommand),
 }
 
 #[tokio::main]
@@ -34,6 +35,9 @@ async fn main() -> Result<()> {
         Commands::Melt(sub_command_args) => sub_commands::melt::melt(sub_command_args).await,
         Commands::Receive(sub_command_args) => {
             sub_commands::receive::receive(sub_command_args).await
+        }
+        Commands::CreateToken(sub_command_args) => {
+            sub_commands::create_token::create_token(sub_command_args).await
         }
     }
 }
