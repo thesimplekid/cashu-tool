@@ -6,23 +6,20 @@ use std::println;
 use anyhow::{bail, Result};
 use cashu_sdk::client::minreq_client::HttpClient;
 use cashu_sdk::client::Client;
-use cashu_sdk::nuts::{Proofs, Token};
+use cashu_sdk::nuts::Proofs;
 use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::Wallet;
 use cashu_sdk::Amount;
 use clap::Args;
 
 #[derive(Args)]
-pub struct CreateTokenSubCommand {
-    /// Token Memo
-    #[arg(short, long)]
-    memo: Option<String>,
+pub struct CheckSpentSubCommand {
     /// File Path to save proofs
     #[arg(short, long)]
     file_path: Option<String>,
 }
 
-pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()> {
+pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> {
     let client = HttpClient {};
 
     let file_path = sub_command_args
@@ -62,18 +59,6 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         bail!("Invalid mint number");
     }
 
-    println!("Enter value of token in sats");
-
-    let mut user_input = String::new();
-    let stdin = io::stdin();
-    io::stdout().flush().unwrap();
-    stdin.read_line(&mut user_input)?;
-    let token_amount = Amount::from_sat(user_input.trim().parse::<u64>()?);
-
-    if token_amount.gt(&mints_amounts[mint_number as usize].1) {
-        bail!("Not enough funds");
-    }
-
     let mint_url = mints_amounts[mint_number as usize].0;
 
     let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
@@ -82,19 +67,35 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
 
     let proofs = saved_proofs.get(mint_url).unwrap().clone();
 
-    let send_proofs = wallet.send(token_amount, proofs).await.unwrap();
-
-    let token = Token::new(
-        mint_url.clone(),
-        send_proofs.send_proofs,
-        sub_command_args.memo.clone(),
-    )?;
-
-    println!("{}", token.convert_to_string()?);
+    let send_proofs = wallet
+        .check_proofs_spent(proofs.iter().map(|p| p.clone().into()).collect())
+        .await?;
 
     let mut file = File::create(file_path)?;
 
-    saved_proofs.insert(mint_url.clone(), send_proofs.change_proofs);
+    println!(
+        "{} tokens already spent worth {} sats",
+        send_proofs.spent.len(),
+        send_proofs
+            .spent
+            .iter()
+            .map(|p| p.amount)
+            .sum::<Amount>()
+            .to_sat()
+    );
+
+    println!(
+        "{} tokens spendable worth {} sats",
+        send_proofs.spendable.len(),
+        send_proofs
+            .spendable
+            .iter()
+            .map(|p| p.amount)
+            .sum::<Amount>()
+            .to_sat()
+    );
+
+    saved_proofs.insert(mint_url.clone(), send_proofs.spendable);
 
     file.write_all(serde_json::to_string(&saved_proofs)?.as_bytes())?;
     file.flush()?;

@@ -21,6 +21,7 @@ enum Commands {
     Melt(sub_commands::melt::MeltSubCommand),
     Receive(sub_commands::receive::ReceiveSubCommand),
     CreateToken(sub_commands::create_token::CreateTokenSubCommand),
+    CheckSpendable(sub_commands::check_spent::CheckSpentSubCommand),
 }
 
 #[tokio::main]
@@ -38,6 +39,9 @@ async fn main() -> Result<()> {
         }
         Commands::CreateToken(sub_command_args) => {
             sub_commands::create_token::create_token(sub_command_args).await
+        }
+        Commands::CheckSpendable(sub_command_args) => {
+            sub_commands::check_spent::check_spent(sub_command_args).await
         }
     }
 }
