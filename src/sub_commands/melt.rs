@@ -31,7 +31,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
 
     let melt = wallet
         .melt(
-            Bolt11Invoice::from_str(&sub_command_args.bolt11)?,
+            Bolt11Invoice::from_str(&sub_command_args.bolt11)?.to_string(),
             token
                 .token
                 .into_iter()

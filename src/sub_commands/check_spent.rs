@@ -43,7 +43,7 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
         .collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {
-        println!("{}: {}, {} sats", i, mint, amount.to_sat());
+        println!("{}: {}, {:?} sats", i, mint, amount);
     }
 
     println!("Enter mint number to create token");
@@ -74,25 +74,19 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
     let mut file = File::create(file_path)?;
 
     println!(
-        "{} tokens already spent worth {} sats",
+        "{} tokens already spent worth {:?} sats",
         send_proofs.spent.len(),
-        send_proofs
-            .spent
-            .iter()
-            .map(|p| p.amount)
-            .sum::<Amount>()
-            .to_sat()
+        send_proofs.spent.iter().map(|p| p.amount).sum::<Amount>()
     );
 
     println!(
-        "{} tokens spendable worth {} sats",
+        "{} tokens spendable worth {:?} sats",
         send_proofs.spendable.len(),
         send_proofs
             .spendable
             .iter()
             .map(|p| p.amount)
             .sum::<Amount>()
-            .to_sat()
     );
 
     saved_proofs.insert(mint_url.clone(), send_proofs.spendable);

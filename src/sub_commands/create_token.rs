@@ -46,7 +46,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         .collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {
-        println!("{}: {}, {} sats", i, mint, amount.to_sat());
+        println!("{}: {}, {:?} sats", i, mint, amount);
     }
 
     println!("Enter mint number to create token");
@@ -68,7 +68,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     let stdin = io::stdin();
     io::stdout().flush().unwrap();
     stdin.read_line(&mut user_input)?;
-    let token_amount = Amount::from_sat(user_input.trim().parse::<u64>()?);
+    let token_amount = Amount::from(user_input.trim().parse::<u64>()?);
 
     if token_amount.gt(&mints_amounts[mint_number as usize].1) {
         bail!("Not enough funds");
@@ -88,9 +88,10 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         mint_url.clone(),
         send_proofs.send_proofs,
         sub_command_args.memo.clone(),
+        None,
     )?;
 
-    println!("{}", token.convert_to_string()?);
+    println!("{}", token.to_string());
 
     let mut file = File::create(file_path)?;
 

@@ -34,7 +34,7 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
     let wallet = Wallet::new(client, mint_url.clone(), keys);
 
     let mut proofs = wallet.receive(&sub_command_args.token).await?;
-    let receive_amount = proofs.iter().map(|p| p.amount).sum::<Amount>().to_sat();
+    let receive_amount = proofs.iter().map(|p| p.amount).sum::<Amount>();
 
     let file_path = sub_command_args
         .file_path
@@ -62,7 +62,7 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
     file.write_all(serde_json::to_string(&saved_proofs)?.as_bytes())?;
     file.flush()?;
 
-    println!("Received {receive_amount} from mint {mint_url}");
+    println!("Received {receive_amount:?} from mint {mint_url}");
 
     Ok(())
 }

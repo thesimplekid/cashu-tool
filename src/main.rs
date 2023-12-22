@@ -22,6 +22,7 @@ enum Commands {
     Receive(sub_commands::receive::ReceiveSubCommand),
     CreateToken(sub_commands::create_token::CreateTokenSubCommand),
     CheckSpendable(sub_commands::check_spent::CheckSpentSubCommand),
+    MintInfo(sub_commands::mint_info::MintInfoSubcommand),
 }
 
 #[tokio::main]
@@ -42,6 +43,9 @@ async fn main() -> Result<()> {
         }
         Commands::CheckSpendable(sub_command_args) => {
             sub_commands::check_spent::check_spent(sub_command_args).await
+        }
+        Commands::MintInfo(sub_command_args) => {
+            sub_commands::mint_info::mint_info(sub_command_args).await
         }
     }
 }
