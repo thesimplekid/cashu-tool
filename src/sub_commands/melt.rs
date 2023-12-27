@@ -27,7 +27,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
 
     let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
 
-    let wallet = Wallet::new(client, mint_url, keys);
+    let wallet = Wallet::new(client, mint_url, vec![], keys);
 
     let melt = wallet
         .melt(

@@ -31,7 +31,7 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
 
     let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
 
-    let wallet = Wallet::new(client, mint_url.clone(), keys);
+    let wallet = Wallet::new(client, mint_url.clone(), vec![], keys);
 
     let mut proofs = wallet.receive(&sub_command_args.token).await?;
     let receive_amount = proofs.iter().map(|p| p.amount).sum::<Amount>();

@@ -78,7 +78,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
 
     let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
 
-    let wallet = Wallet::new(client, mint_url.clone(), keys);
+    let wallet = Wallet::new(client, mint_url.clone(), vec![], keys);
 
     let proofs = saved_proofs.get(mint_url).unwrap().clone();
 
