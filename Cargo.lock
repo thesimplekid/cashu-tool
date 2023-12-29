@@ -221,6 +221,7 @@ dependencies = [
  "itertools",
  "k256",
  "lightning-invoice",
+ "log",
  "rand",
  "regex",
  "serde",

@@ -6,7 +6,7 @@ use cashu_sdk::client::minreq_client::HttpClient;
 use cashu_sdk::client::Client;
 use cashu_sdk::nuts::Token;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::{Amount, Bolt11Invoice};
+use cashu_sdk::Bolt11Invoice;
 use clap::Args;
 
 #[derive(Args)]
@@ -20,6 +20,7 @@ pub struct MeltSubCommand {
 
 pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
     let token = Token::from_str(&sub_command_args.token)?;
+    let bolt11 = Bolt11Invoice::from_str(&sub_command_args.bolt11)?;
 
     let client = HttpClient {};
 
@@ -27,21 +28,26 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
 
     let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
 
-    let wallet = Wallet::new(client, mint_url, vec![], keys);
+    let mut wallet = Wallet::new(client, mint_url, vec![], vec![], keys);
+
+    let quote = wallet
+        .melt_quote(cashu_sdk::nuts::CurrencyUnit::Sat, bolt11)
+        .await?;
 
     let melt = wallet
         .melt(
-            Bolt11Invoice::from_str(&sub_command_args.bolt11)?.to_string(),
+            &quote.id,
             token
                 .token
                 .into_iter()
                 .map(|p| p.proofs)
                 .flatten()
                 .collect(),
-            Amount::ZERO,
         )
         .await
         .unwrap();
+
+    // TODO: Save change
 
     println!("{:?}", melt);
 
