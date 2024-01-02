@@ -1,46 +1,34 @@
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{self, Read, Write};
-use std::println;
+use std::io::Write;
+use std::{io, println};
 
 use anyhow::{bail, Result};
 use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::client::Client;
-use cashu_sdk::nuts::Proofs;
 use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::Amount;
+use cashu_sdk::{Amount, RedbLocalStore};
 use clap::Args;
 
 #[derive(Args)]
 pub struct CheckSpentSubCommand {
     /// File Path to save proofs
     #[arg(short, long)]
-    file_path: Option<String>,
+    db_path: Option<String>,
 }
 
 pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> {
     let client = HttpClient {};
 
-    let file_path = sub_command_args
-        .file_path
+    let db_path = sub_command_args
+        .db_path
         .clone()
-        .unwrap_or("./proofs".to_string());
+        .unwrap_or("./cashu_tool.redb".to_string());
 
-    let mut saved_proofs: HashMap<UncheckedUrl, Proofs> = match File::open(&file_path) {
-        Ok(mut file) => {
-            // Read the contents of the file into a String
-            let mut saved_proofs = String::new();
-            file.read_to_string(&mut saved_proofs)?;
-            serde_json::from_str(&saved_proofs).unwrap()
-        }
-        Err(_) => HashMap::new(),
-    };
+    let localstore = RedbLocalStore::new(&db_path)?;
 
-    let mints_amounts: Vec<(&UncheckedUrl, Amount)> = saved_proofs
-        .iter()
-        .map(|(k, v)| (k, v.iter().map(|p| p.amount).sum()))
-        .collect();
+    let wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
+
+    let mints_amounts: Vec<(UncheckedUrl, Amount)> =
+        wallet.mint_balances().await?.into_iter().collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {
         println!("{}: {}, {:?} sats", i, mint, amount);
@@ -59,19 +47,13 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
         bail!("Invalid mint number");
     }
 
-    let mint_url = mints_amounts[mint_number as usize].0;
+    let mint_url = mints_amounts[mint_number as usize].0.clone();
 
-    let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
-
-    let wallet = Wallet::new(client, mint_url.clone(), vec![], vec![], keys);
-
-    let proofs = saved_proofs.get(mint_url).unwrap().clone();
+    let proofs = wallet.get_proofs(mint_url.clone()).await?.unwrap();
 
     let send_proofs = wallet
-        .check_proofs_spent(proofs.iter().map(|p| p.clone().into()).collect())
+        .check_proofs_spent(mint_url, proofs.iter().map(|p| p.clone().into()).collect())
         .await?;
-
-    let mut file = File::create(file_path)?;
 
     println!(
         "{} tokens already spent worth {:?} sats",
@@ -88,11 +70,6 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
             .map(|p| p.amount)
             .sum::<Amount>()
     );
-
-    saved_proofs.insert(mint_url.clone(), send_proofs.spendable);
-
-    file.write_all(serde_json::to_string(&saved_proofs)?.as_bytes())?;
-    file.flush()?;
 
     Ok(())
 }

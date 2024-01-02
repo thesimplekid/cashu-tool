@@ -3,10 +3,9 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::client::Client;
 use cashu_sdk::nuts::Token;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::Bolt11Invoice;
+use cashu_sdk::{Bolt11Invoice, RedbLocalStore};
 use clap::Args;
 
 #[derive(Args)]
@@ -16,6 +15,9 @@ pub struct MeltSubCommand {
     token: String,
     #[arg(short, long)]
     bolt11: String,
+    /// File Path to save proofs
+    #[arg(short, long)]
+    db_path: Option<String>,
 }
 
 pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
@@ -25,29 +27,20 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
     let client = HttpClient {};
 
     let mint_url = token.token[0].mint.clone();
+    let db_path = sub_command_args
+        .db_path
+        .clone()
+        .unwrap_or("./cashu_tool.redb".to_string());
 
-    let keys = client.get_mint_keys(mint_url.clone().try_into()?).await?;
+    let localstore = RedbLocalStore::new(&db_path)?;
 
-    let mut wallet = Wallet::new(client, mint_url, vec![], vec![], keys);
+    let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
 
     let quote = wallet
-        .melt_quote(cashu_sdk::nuts::CurrencyUnit::Sat, bolt11)
+        .melt_quote(mint_url.clone(), cashu_sdk::nuts::CurrencyUnit::Sat, bolt11)
         .await?;
 
-    let melt = wallet
-        .melt(
-            &quote.id,
-            token
-                .token
-                .into_iter()
-                .map(|p| p.proofs)
-                .flatten()
-                .collect(),
-        )
-        .await
-        .unwrap();
-
-    // TODO: Save change
+    let melt = wallet.melt(&mint_url, &quote.id).await.unwrap();
 
     println!("{:?}", melt);
 
