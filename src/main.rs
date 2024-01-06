@@ -15,6 +15,8 @@ struct Cli {
     command: Commands,
 }
 
+const DEFAULT_DB_PATH: &str = "./cashu_tool.redb";
+
 #[derive(Subcommand)]
 enum Commands {
     DecodeToken(sub_commands::decode_token::DecodeTokenSubCommand),

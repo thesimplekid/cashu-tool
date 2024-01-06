@@ -5,9 +5,12 @@ use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
 use cashu_sdk::nuts::CurrencyUnit;
 use cashu_sdk::url::UncheckedUrl;
+use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::{Amount, RedbLocalStore};
+use cashu_sdk::Amount;
 use clap::Args;
+
+use crate::DEFAULT_DB_PATH;
 
 #[derive(Args)]
 pub struct MintSubCommand {
@@ -29,7 +32,7 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
     let db_path = sub_command_args
         .db_path
         .clone()
-        .unwrap_or("./cashu_tool.redb".to_string());
+        .unwrap_or(DEFAULT_DB_PATH.to_string());
 
     let localstore = RedbLocalStore::new(&db_path)?;
     let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
@@ -41,6 +44,8 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
             CurrencyUnit::from_str(&sub_command_args.unit)?,
         )
         .await?;
+
+    println!("Quote: {:#?}", quote);
 
     println!("Please pay: {}", quote.request.to_string());
 

@@ -1,8 +1,10 @@
 use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
+use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::RedbLocalStore;
 use clap::Args;
+
+use crate::DEFAULT_DB_PATH;
 
 #[derive(Args)]
 pub struct ReceiveSubCommand {
@@ -20,7 +22,7 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
     let db_path = sub_command_args
         .db_path
         .clone()
-        .unwrap_or("./cashu_tool.redb".to_string());
+        .unwrap_or(DEFAULT_DB_PATH.to_string());
 
     let localstore = RedbLocalStore::new(&db_path)?;
     let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
