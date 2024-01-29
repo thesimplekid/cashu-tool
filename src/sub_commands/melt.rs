@@ -37,7 +37,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
 
     let localstore = RedbLocalStore::new(&db_path)?;
 
-    let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
+    let mut wallet = Wallet::new(client, localstore, None).await;
 
     let quote = wallet
         .melt_quote(

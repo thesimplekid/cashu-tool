@@ -28,7 +28,7 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
 
     let localstore = RedbLocalStore::new(&db_path)?;
 
-    let wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
+    let wallet = Wallet::new(client, localstore, None).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

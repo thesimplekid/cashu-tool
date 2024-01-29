@@ -31,7 +31,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         .unwrap_or(DEFAULT_DB_PATH.to_string());
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
+    let mut wallet = Wallet::new(client, localstore, None).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();
@@ -69,8 +69,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
 
     let proofs = wallet
         .send(&mint_url, &CurrencyUnit::Sat, token_amount)
-        .await
-        .unwrap();
+        .await?;
 
     let token = Token::new(
         mint_url.clone(),

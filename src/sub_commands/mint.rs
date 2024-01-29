@@ -35,7 +35,7 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
         .unwrap_or(DEFAULT_DB_PATH.to_string());
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, vec![], vec![], None, vec![]).await;
+    let mut wallet = Wallet::new(client, localstore, None).await;
 
     let quote = wallet
         .mint_quote(
