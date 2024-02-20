@@ -26,6 +26,7 @@ enum Commands {
     CheckSpendable(sub_commands::check_spent::CheckSpentSubCommand),
     MintInfo(sub_commands::mint_info::MintInfoSubcommand),
     Mint(sub_commands::mint::MintSubCommand),
+    CreateLockedToken(sub_commands::create_locked_token::CreateLockedTokenSubCommand),
 }
 
 #[tokio::main]
@@ -51,5 +52,8 @@ async fn main() -> Result<()> {
             sub_commands::mint_info::mint_info(sub_command_args).await
         }
         Commands::Mint(sub_command_args) => sub_commands::mint::mint(sub_command_args).await,
+        Commands::CreateLockedToken(sub_command_args) => {
+            sub_commands::create_locked_token::create_locked_token(sub_command_args).await
+        }
     }
 }

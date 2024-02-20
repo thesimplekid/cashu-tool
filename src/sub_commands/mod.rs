@@ -1,4 +1,5 @@
 pub mod check_spent;
+pub mod create_locked_token;
 pub mod create_token;
 pub mod decode_token;
 pub mod melt;
