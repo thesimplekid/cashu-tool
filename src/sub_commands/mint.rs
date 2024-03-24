@@ -1,3 +1,4 @@
+use std::fs;
 use std::io::{self, Read, Write};
 use std::str::FromStr;
 
@@ -7,10 +8,10 @@ use cashu_sdk::nuts::CurrencyUnit;
 use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::Amount;
+use cashu_sdk::{Amount, Mnemonic};
 use clap::Args;
 
-use crate::DEFAULT_DB_PATH;
+use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
 #[derive(Args)]
 pub struct MintSubCommand {
@@ -34,8 +35,16 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
         .clone()
         .unwrap_or(DEFAULT_DB_PATH.to_string());
 
+    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
+        Ok(_) => {
+            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
+            Some(Mnemonic::from_str(&contents)?)
+        }
+        Err(_e) => None,
+    };
+
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, None).await;
+    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
 
     let quote = wallet
         .mint_quote(

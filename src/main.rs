@@ -16,6 +16,7 @@ struct Cli {
 }
 
 const DEFAULT_DB_PATH: &str = "./cashu_tool.redb";
+const DEFAULT_SEED_PATH: &str = "./seed.txt";
 
 #[derive(Subcommand)]
 enum Commands {
@@ -26,11 +27,15 @@ enum Commands {
     CheckSpendable(sub_commands::check_spent::CheckSpentSubCommand),
     MintInfo(sub_commands::mint_info::MintInfoSubcommand),
     Mint(sub_commands::mint::MintSubCommand),
-    CreateLockedToken(sub_commands::create_locked_token::CreateLockedTokenSubCommand),
+    Restore(sub_commands::restore::RestoreSubCommand),
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .init();
+
     // Parse input
     let args: Cli = Cli::parse();
 
@@ -52,8 +57,8 @@ async fn main() -> Result<()> {
             sub_commands::mint_info::mint_info(sub_command_args).await
         }
         Commands::Mint(sub_command_args) => sub_commands::mint::mint(sub_command_args).await,
-        Commands::CreateLockedToken(sub_command_args) => {
-            sub_commands::create_locked_token::create_locked_token(sub_command_args).await
+        Commands::Restore(sub_command_args) => {
+            sub_commands::restore::restore(sub_command_args).await
         }
     }
 }

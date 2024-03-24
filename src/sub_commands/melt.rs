@@ -1,16 +1,16 @@
 use std::io::Write;
 use std::str::FromStr;
-use std::{io, println};
+use std::{fs, io, println};
 
 use anyhow::{bail, Result};
 use cashu_sdk::client::minreq_client::HttpClient;
 use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
-use cashu_sdk::{Amount, Bolt11Invoice};
+use cashu_sdk::{Amount, Bolt11Invoice, Mnemonic};
 use clap::Args;
 
-use crate::DEFAULT_DB_PATH;
+use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
 #[derive(Args)]
 pub struct MeltSubCommand {
@@ -29,7 +29,15 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
 
     let localstore = RedbLocalStore::new(&db_path)?;
 
-    let mut wallet = Wallet::new(client, localstore, None).await;
+    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
+        Ok(_) => {
+            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
+            Some(Mnemonic::from_str(&contents)?)
+        }
+        Err(_e) => None,
+    };
+
+    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

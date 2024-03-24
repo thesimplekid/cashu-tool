@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::nuts::SigningKey;
+use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
 use cashu_sdk::Mnemonic;
@@ -12,19 +12,16 @@ use clap::Args;
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
 #[derive(Args)]
-pub struct ReceiveSubCommand {
-    /// Cashu Token
+pub struct RestoreSubCommand {
     #[arg(short, long)]
-    token: String,
-    /// Cashu Token
-    #[arg(short, long, action = clap::ArgAction::Append)]
-    signing_key: Vec<String>,
+    mint_url: UncheckedUrl,
     /// File Path to save proofs
     #[arg(short, long)]
     db_path: Option<String>,
 }
 
-pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
+pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
+    let mint_url = sub_command_args.mint_url.clone();
     let client = HttpClient {};
 
     let db_path = sub_command_args
@@ -43,19 +40,9 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
     let localstore = RedbLocalStore::new(&db_path)?;
     let mut wallet = Wallet::new(client, localstore, mnemonic).await;
 
-    if !sub_command_args.signing_key.is_empty() {
-        let secret_keys = sub_command_args
-            .signing_key
-            .iter()
-            .map(|s| SigningKey::from_str(s).unwrap())
-            .collect();
+    let amount = wallet.restore(mint_url).await?;
 
-        wallet
-            .receive_p2pk(&sub_command_args.token, secret_keys)
-            .await?;
-    } else {
-        wallet.receive(&sub_command_args.token).await?;
-    }
+    println!("Restored {}", amount);
 
     Ok(())
 }
