@@ -1,5 +1,6 @@
 use std::fs;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
@@ -38,7 +39,7 @@ pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
     };
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
+    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
 
     let amount = wallet.restore(mint_url).await?;
 

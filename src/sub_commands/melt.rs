@@ -1,5 +1,6 @@
 use std::io::Write;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
@@ -37,7 +38,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
+    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

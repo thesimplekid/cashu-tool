@@ -1,11 +1,11 @@
 use std::io::Write;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
 use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::nuts::nut11::VerifyingKey;
-use cashu_sdk::nuts::{CurrencyUnit, P2PKConditions, Token};
+use cashu_sdk::nuts::{CurrencyUnit, P2PKConditions, Token, VerifyingKey};
 use cashu_sdk::url::UncheckedUrl;
 use cashu_sdk::wallet::localstore::RedbLocalStore;
 use cashu_sdk::wallet::Wallet;
@@ -53,7 +53,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     };
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
+    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();
@@ -96,11 +96,13 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
             .map(|p| VerifyingKey::from_str(p).unwrap())
             .collect();
 
-        let refund_keys = sub_command_args
+        let refund_keys: Vec<VerifyingKey> = sub_command_args
             .refund_keys
             .iter()
             .map(|p| VerifyingKey::from_str(p).unwrap())
             .collect();
+
+        let refund_keys = refund_keys.is_empty().then_some(refund_keys);
 
         let p2pk_conditions = P2PKConditions::new(
             sub_command_args.locktime,

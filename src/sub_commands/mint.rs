@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::{self, Read, Write};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::Result;
 use cashu_sdk::client::minreq_client::HttpClient;
@@ -44,7 +45,7 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
     };
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, localstore, mnemonic).await;
+    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
 
     let quote = wallet
         .mint_quote(
