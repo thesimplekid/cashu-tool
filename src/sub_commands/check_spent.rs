@@ -3,11 +3,10 @@ use std::sync::Arc;
 use std::{io, println};
 
 use anyhow::{bail, Result};
-use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::url::UncheckedUrl;
-use cashu_sdk::wallet::localstore::RedbLocalStore;
-use cashu_sdk::wallet::Wallet;
-use cashu_sdk::Amount;
+use cdk::url::UncheckedUrl;
+use cdk::wallet::localstore::RedbLocalStore;
+use cdk::wallet::Wallet;
+use cdk::{Amount, HttpClient};
 use clap::Args;
 
 use crate::DEFAULT_DB_PATH;
@@ -20,7 +19,7 @@ pub struct CheckSpentSubCommand {
 }
 
 pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> {
-    let client = HttpClient {};
+    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -29,7 +28,7 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
 
     let localstore = RedbLocalStore::new(&db_path)?;
 
-    let wallet = Wallet::new(Arc::new(client), Arc::new(localstore), None).await;
+    let wallet = Wallet::new(client, Arc::new(localstore), None).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

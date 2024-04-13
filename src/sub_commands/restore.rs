@@ -3,11 +3,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::Result;
-use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::url::UncheckedUrl;
-use cashu_sdk::wallet::localstore::RedbLocalStore;
-use cashu_sdk::wallet::Wallet;
-use cashu_sdk::Mnemonic;
+use cdk::url::UncheckedUrl;
+use cdk::wallet::localstore::RedbLocalStore;
+use cdk::wallet::Wallet;
+use cdk::{HttpClient, Mnemonic};
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -23,7 +22,7 @@ pub struct RestoreSubCommand {
 
 pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
     let mint_url = sub_command_args.mint_url.clone();
-    let client = HttpClient {};
+    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -39,7 +38,7 @@ pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
     };
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
+    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
 
     let amount = wallet.restore(mint_url).await?;
 

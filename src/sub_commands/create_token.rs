@@ -4,12 +4,11 @@ use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
-use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::nuts::{CurrencyUnit, P2PKConditions, Token, VerifyingKey};
-use cashu_sdk::url::UncheckedUrl;
-use cashu_sdk::wallet::localstore::RedbLocalStore;
-use cashu_sdk::wallet::Wallet;
-use cashu_sdk::{Amount, Mnemonic};
+use cdk::nuts::{CurrencyUnit, P2PKConditions, Token, VerifyingKey};
+use cdk::url::UncheckedUrl;
+use cdk::wallet::localstore::RedbLocalStore;
+use cdk::wallet::Wallet;
+use cdk::{Amount, HttpClient, Mnemonic};
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -37,7 +36,7 @@ pub struct CreateTokenSubCommand {
 }
 
 pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()> {
-    let client = HttpClient {};
+    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -53,7 +52,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     };
 
     let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
+    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

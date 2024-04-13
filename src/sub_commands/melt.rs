@@ -4,11 +4,10 @@ use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
-use cashu_sdk::client::minreq_client::HttpClient;
-use cashu_sdk::url::UncheckedUrl;
-use cashu_sdk::wallet::localstore::RedbLocalStore;
-use cashu_sdk::wallet::Wallet;
-use cashu_sdk::{Amount, Bolt11Invoice, Mnemonic};
+use cdk::url::UncheckedUrl;
+use cdk::wallet::localstore::RedbLocalStore;
+use cdk::wallet::Wallet;
+use cdk::{Amount, Bolt11Invoice, HttpClient, Mnemonic};
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -21,7 +20,7 @@ pub struct MeltSubCommand {
 }
 
 pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
-    let client = HttpClient {};
+    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -38,7 +37,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let mut wallet = Wallet::new(Arc::new(client), Arc::new(localstore), mnemonic).await;
+    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();
@@ -73,17 +72,14 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
     if bolt11
         .amount_milli_satoshis()
         .unwrap()
-        .gt(
-            &(<cashu_sdk::Amount as Into<u64>>::into(mints_amounts[mint_number as usize].1)
-                * 1000_u64),
-        )
+        .gt(&(<cdk::Amount as Into<u64>>::into(mints_amounts[mint_number as usize].1) * 1000_u64))
     {
         bail!("Not enough funds");
     }
     let quote = wallet
         .melt_quote(
             mint_url.clone(),
-            cashu_sdk::nuts::CurrencyUnit::Sat,
+            cdk::nuts::CurrencyUnit::Sat,
             bolt11.to_string(),
         )
         .await?;

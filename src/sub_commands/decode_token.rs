@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use cashu_sdk::nuts::Token;
+use cdk::nuts::Token;
 use clap::Args;
 
 #[derive(Args)]
