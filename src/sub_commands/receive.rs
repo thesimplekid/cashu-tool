@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use cdk::nuts::SigningKey;
-use cdk::wallet::localstore::RedbLocalStore;
 use cdk::wallet::Wallet;
-use cdk::{HttpClient, Mnemonic};
+use cdk::Mnemonic;
+use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -19,14 +19,15 @@ pub struct ReceiveSubCommand {
     /// Cashu Token
     #[arg(short, long, action = clap::ArgAction::Append)]
     signing_key: Vec<String>,
+    /// Preimage
+    #[arg(short, long,  action = clap::ArgAction::Append)]
+    preimage: Vec<String>,
     /// File Path to save proofs
     #[arg(short, long)]
     db_path: Option<String>,
 }
 
 pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
-    let client = HttpClient::default();
-
     let db_path = sub_command_args
         .db_path
         .clone()
@@ -40,8 +41,16 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
+    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let mut wallet = Wallet::new(
+        Arc::new(localstore),
+        &mnemonic.unwrap().to_seed_normalized(""),
+    );
+
+    let preimage = match sub_command_args.preimage.is_empty() {
+        true => None,
+        false => Some(sub_command_args.preimage.clone()),
+    };
 
     if !sub_command_args.signing_key.is_empty() {
         let secret_keys = sub_command_args
@@ -51,10 +60,12 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
             .collect();
 
         wallet
-            .receive_p2pk(&sub_command_args.token, secret_keys)
+            .receive(&sub_command_args.token, Some(secret_keys), preimage)
             .await?;
     } else {
-        wallet.receive(&sub_command_args.token).await?;
+        wallet
+            .receive(&sub_command_args.token, None, preimage)
+            .await?;
     }
 
     Ok(())

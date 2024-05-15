@@ -5,9 +5,9 @@ use std::{fs, io, println};
 
 use anyhow::{bail, Result};
 use cdk::url::UncheckedUrl;
-use cdk::wallet::localstore::RedbLocalStore;
 use cdk::wallet::Wallet;
-use cdk::{Amount, Bolt11Invoice, HttpClient, Mnemonic};
+use cdk::{Amount, Bolt11Invoice, Mnemonic};
+use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -20,14 +20,12 @@ pub struct MeltSubCommand {
 }
 
 pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
-    let client = HttpClient::default();
-
     let db_path = sub_command_args
         .db_path
         .clone()
         .unwrap_or(DEFAULT_DB_PATH.to_string());
 
-    let localstore = RedbLocalStore::new(&db_path)?;
+    let localstore = RedbWalletDatabase::new(&db_path)?;
 
     let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
         Ok(_) => {
@@ -37,7 +35,10 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
+    let mut wallet = Wallet::new(
+        Arc::new(localstore),
+        &mnemonic.unwrap().to_seed_normalized(""),
+    );
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();

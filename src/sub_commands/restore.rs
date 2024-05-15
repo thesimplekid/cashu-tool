@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use cdk::url::UncheckedUrl;
-use cdk::wallet::localstore::RedbLocalStore;
 use cdk::wallet::Wallet;
-use cdk::{HttpClient, Mnemonic};
+use cdk::Mnemonic;
+use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -22,7 +22,6 @@ pub struct RestoreSubCommand {
 
 pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
     let mint_url = sub_command_args.mint_url.clone();
-    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -37,8 +36,11 @@ pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
+    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let mut wallet = Wallet::new(
+        Arc::new(localstore),
+        &mnemonic.unwrap().to_seed_normalized(""),
+    );
 
     let amount = wallet.restore(mint_url).await?;
 

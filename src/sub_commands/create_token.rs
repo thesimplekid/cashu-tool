@@ -4,11 +4,11 @@ use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
-use cdk::nuts::{CurrencyUnit, P2PKConditions, Token, VerifyingKey};
+use cdk::nuts::{Conditions, CurrencyUnit, SpendingConditions, VerifyingKey};
 use cdk::url::UncheckedUrl;
-use cdk::wallet::localstore::RedbLocalStore;
 use cdk::wallet::Wallet;
-use cdk::{Amount, HttpClient, Mnemonic};
+use cdk::{Amount, Mnemonic};
+use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -18,6 +18,9 @@ pub struct CreateTokenSubCommand {
     /// Token Memo
     #[arg(short, long)]
     memo: Option<String>,
+    /// Preimage
+    #[arg(long)]
+    preimage: Option<String>,
     /// Required number of signatures
     #[arg(long)]
     required_sigs: Option<u64>,
@@ -36,8 +39,6 @@ pub struct CreateTokenSubCommand {
 }
 
 pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()> {
-    let client = HttpClient::default();
-
     let db_path = sub_command_args
         .db_path
         .clone()
@@ -51,8 +52,11 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         Err(_e) => None,
     };
 
-    let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
+    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let mut wallet = Wallet::new(
+        Arc::new(localstore),
+        &mnemonic.unwrap().to_seed_normalized(""),
+    );
 
     let mints_amounts: Vec<(UncheckedUrl, Amount)> =
         wallet.mint_balances().await?.into_iter().collect();
@@ -88,45 +92,90 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         bail!("Not enough funds");
     }
 
-    let proofs = if !sub_command_args.pubkey.is_empty() {
-        let pubkeys = sub_command_args
-            .pubkey
-            .iter()
-            .map(|p| VerifyingKey::from_str(p).unwrap())
-            .collect();
+    let conditions = match &sub_command_args.preimage {
+        Some(preimage) => {
+            let pubkeys = match sub_command_args.pubkey.is_empty() {
+                true => None,
+                false => Some(
+                    sub_command_args
+                        .pubkey
+                        .iter()
+                        .map(|p| VerifyingKey::from_str(p).unwrap())
+                        .collect(),
+                ),
+            };
 
-        let refund_keys: Vec<VerifyingKey> = sub_command_args
-            .refund_keys
-            .iter()
-            .map(|p| VerifyingKey::from_str(p).unwrap())
-            .collect();
+            let refund_keys = match sub_command_args.refund_keys.is_empty() {
+                true => None,
+                false => Some(
+                    sub_command_args
+                        .refund_keys
+                        .iter()
+                        .map(|p| VerifyingKey::from_str(p).unwrap())
+                        .collect(),
+                ),
+            };
 
-        let refund_keys = refund_keys.is_empty().then_some(refund_keys);
+            let conditions = Conditions::new(
+                sub_command_args.locktime,
+                pubkeys,
+                refund_keys,
+                sub_command_args.required_sigs,
+                None,
+            )
+            .unwrap();
 
-        let p2pk_conditions = P2PKConditions::new(
-            sub_command_args.locktime,
-            pubkeys,
-            refund_keys,
-            sub_command_args.required_sigs,
-            None,
-        )
-        .unwrap();
+            Some(SpendingConditions::new_htlc(preimage.clone(), conditions)?)
+        }
+        None => match sub_command_args.pubkey.is_empty() {
+            true => None,
+            false => {
+                let pubkeys: Vec<VerifyingKey> = sub_command_args
+                    .pubkey
+                    .iter()
+                    .map(|p| VerifyingKey::from_str(p).unwrap())
+                    .collect();
 
-        wallet
-            .send_p2pk(&mint_url, &CurrencyUnit::Sat, token_amount, p2pk_conditions)
-            .await?
-    } else {
-        wallet
-            .send(&mint_url, &CurrencyUnit::Sat, token_amount)
-            .await?
+                let refund_keys: Vec<VerifyingKey> = sub_command_args
+                    .refund_keys
+                    .iter()
+                    .map(|p| VerifyingKey::from_str(p).unwrap())
+                    .collect();
+
+                let refund_keys = (!refund_keys.is_empty()).then_some(refund_keys);
+
+                let data_pubkey = pubkeys[0].clone();
+                let pubkeys = pubkeys[1..].to_vec();
+                let pubkeys = (!pubkeys.is_empty()).then_some(pubkeys);
+
+                let conditions = Conditions::new(
+                    sub_command_args.locktime,
+                    pubkeys,
+                    refund_keys,
+                    sub_command_args.required_sigs,
+                    None,
+                )
+                .unwrap();
+
+                tracing::debug!("{}", data_pubkey.to_string());
+
+                Some(SpendingConditions::P2PKConditions {
+                    data: data_pubkey,
+                    conditions,
+                })
+            }
+        },
     };
 
-    let token = Token::new(
-        mint_url.clone(),
-        proofs,
-        sub_command_args.memo.clone(),
-        None,
-    )?;
+    let token = wallet
+        .send(
+            &mint_url,
+            &CurrencyUnit::Sat,
+            sub_command_args.memo.clone(),
+            token_amount,
+            conditions,
+        )
+        .await?;
 
     println!("{}", token.to_string());
 

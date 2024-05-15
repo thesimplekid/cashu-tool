@@ -6,9 +6,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
-use cdk::wallet::localstore::RedbLocalStore;
 use cdk::wallet::Wallet;
-use cdk::{Amount, HttpClient, Mnemonic};
+use cdk::{Amount, Mnemonic};
+use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -28,7 +28,6 @@ pub struct MintSubCommand {
 
 pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
     let mint_url = sub_command_args.mint_url.clone();
-    let client = HttpClient::default();
 
     let db_path = sub_command_args
         .db_path
@@ -43,14 +42,17 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let localstore = RedbLocalStore::new(&db_path)?;
-    let mut wallet = Wallet::new(client, Arc::new(localstore), mnemonic).await;
+    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let mut wallet = Wallet::new(
+        Arc::new(localstore),
+        &mnemonic.unwrap().to_seed_normalized(""),
+    );
 
     let quote = wallet
         .mint_quote(
             mint_url.clone(),
             Amount::from(sub_command_args.amount),
-            CurrencyUnit::from_str(&sub_command_args.unit)?,
+            CurrencyUnit::from(&sub_command_args.unit),
         )
         .await?;
 
