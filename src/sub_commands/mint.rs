@@ -1,7 +1,7 @@
 use std::fs;
-use std::io::{self, Read, Write};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::Result;
 use cdk::nuts::CurrencyUnit;
@@ -10,6 +10,7 @@ use cdk::wallet::Wallet;
 use cdk::{Amount, Mnemonic};
 use cdk_redb::RedbWalletDatabase;
 use clap::Args;
+use tokio::time::sleep;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
@@ -61,17 +62,15 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
     println!("Please pay: {}", quote.request.to_string());
 
     loop {
-        println!("Press any key to continue once request is paid");
+        let status = wallet
+            .mint_quote_status(mint_url.clone(), &quote.id)
+            .await?;
 
-        let _ = io::stdout().flush();
-
-        let mut buffer = [0; 1];
-        if io::stdin().read_exact(&mut buffer).is_ok() {
-            break; // Exit the loop when any key is pressed
+        if status.paid {
+            break;
         }
 
-        println!("Failed to read input.");
-        break;
+        sleep(Duration::from_secs(2)).await;
     }
 
     let receive_amount = wallet.mint(mint_url.clone(), &quote.id).await?;
