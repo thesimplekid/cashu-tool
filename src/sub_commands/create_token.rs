@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
-use cdk::nuts::{Conditions, CurrencyUnit, SpendingConditions, VerifyingKey};
+use cdk::nuts::{Conditions, CurrencyUnit, PublicKey, SpendingConditions};
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
 use cdk::{Amount, Mnemonic};
@@ -100,7 +100,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
                     sub_command_args
                         .pubkey
                         .iter()
-                        .map(|p| VerifyingKey::from_str(p).unwrap())
+                        .map(|p| PublicKey::from_str(p).unwrap())
                         .collect(),
                 ),
             };
@@ -111,7 +111,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
                     sub_command_args
                         .refund_keys
                         .iter()
-                        .map(|p| VerifyingKey::from_str(p).unwrap())
+                        .map(|p| PublicKey::from_str(p).unwrap())
                         .collect(),
                 ),
             };
@@ -130,16 +130,16 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         None => match sub_command_args.pubkey.is_empty() {
             true => None,
             false => {
-                let pubkeys: Vec<VerifyingKey> = sub_command_args
+                let pubkeys: Vec<PublicKey> = sub_command_args
                     .pubkey
                     .iter()
-                    .map(|p| VerifyingKey::from_str(p).unwrap())
+                    .map(|p| PublicKey::from_str(p).unwrap())
                     .collect();
 
-                let refund_keys: Vec<VerifyingKey> = sub_command_args
+                let refund_keys: Vec<PublicKey> = sub_command_args
                     .refund_keys
                     .iter()
-                    .map(|p| VerifyingKey::from_str(p).unwrap())
+                    .map(|p| PublicKey::from_str(p).unwrap())
                     .collect();
 
                 let refund_keys = (!refund_keys.is_empty()).then_some(refund_keys);

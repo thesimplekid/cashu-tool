@@ -2,8 +2,8 @@ use std::fs;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use anyhow::Result;
-use cdk::nuts::SigningKey;
+use anyhow::{anyhow, Result};
+use cdk::nuts::SecretKey;
 use cdk::wallet::Wallet;
 use cdk::Mnemonic;
 use cdk_redb::RedbWalletDatabase;
@@ -15,10 +15,16 @@ use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 pub struct ReceiveSubCommand {
     /// Cashu Token
     #[arg(short, long)]
-    token: String,
-    /// Cashu Token
+    token: Option<String>,
+    /// Nostr key
+    #[arg(short, long)]
+    nostr_key: Option<String>,
+    /// Signing Key
     #[arg(short, long, action = clap::ArgAction::Append)]
     signing_key: Vec<String>,
+    /// Nostr relay
+    #[arg(short, long, action = clap::ArgAction::Append)]
+    relay: Vec<String>,
     /// Preimage
     #[arg(short, long,  action = clap::ArgAction::Append)]
     preimage: Vec<String>,
@@ -41,8 +47,13 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
+    let nostr_key = match sub_command_args.nostr_key.as_ref() {
+        Some(nostr_key) => Some(SecretKey::from_str(nostr_key)?),
+        None => None,
+    };
+
     let localstore = RedbWalletDatabase::new(&db_path)?;
-    let mut wallet = Wallet::new(
+    let wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
     );
@@ -52,21 +63,40 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
         false => Some(sub_command_args.preimage.clone()),
     };
 
-    if !sub_command_args.signing_key.is_empty() {
-        let secret_keys = sub_command_args
-            .signing_key
-            .iter()
-            .map(|s| SigningKey::from_str(s).unwrap())
-            .collect();
+    let signing_key = match sub_command_args.signing_key.is_empty() {
+        false => Some(
+            sub_command_args
+                .signing_key
+                .iter()
+                .map(|s| SecretKey::from_str(s).unwrap())
+                .collect(),
+        ),
+        true => None,
+    };
 
-        wallet
-            .receive(&sub_command_args.token, Some(secret_keys), preimage)
-            .await?;
-    } else {
-        wallet
-            .receive(&sub_command_args.token, None, preimage)
-            .await?;
-    }
+    let amount = match nostr_key {
+        Some(nostr_key) => {
+            assert!(!sub_command_args.relay.is_empty());
+            wallet
+                .add_nostr_relays(sub_command_args.relay.clone())
+                .await?;
+            wallet.nostr_receive(nostr_key).await?
+        }
+        None => {
+            wallet
+                .receive(
+                    sub_command_args
+                        .token
+                        .as_ref()
+                        .ok_or(anyhow!("Token Required"))?,
+                    signing_key,
+                    preimage,
+                )
+                .await?
+        }
+    };
+
+    println!("Received: {}", amount);
 
     Ok(())
 }
