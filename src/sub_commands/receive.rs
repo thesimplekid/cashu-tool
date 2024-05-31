@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
+use cdk::amount::SplitTarget;
 use cdk::nuts::SecretKey;
 use cdk::wallet::Wallet;
 use cdk::Mnemonic;
@@ -14,7 +15,6 @@ use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 #[derive(Args)]
 pub struct ReceiveSubCommand {
     /// Cashu Token
-    #[arg(short, long)]
     token: Option<String>,
     /// Nostr key
     #[arg(short, long)]
@@ -80,7 +80,9 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
             wallet
                 .add_nostr_relays(sub_command_args.relay.clone())
                 .await?;
-            wallet.nostr_receive(nostr_key).await?
+            wallet
+                .nostr_receive(nostr_key, SplitTarget::default())
+                .await?
         }
         None => {
             wallet
@@ -89,6 +91,7 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
                         .token
                         .as_ref()
                         .ok_or(anyhow!("Token Required"))?,
+                    &SplitTarget::default(),
                     signing_key,
                     preimage,
                 )

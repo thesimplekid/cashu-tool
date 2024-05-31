@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
+use cdk::amount::SplitTarget;
 use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
@@ -73,7 +74,9 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
         sleep(Duration::from_secs(2)).await;
     }
 
-    let receive_amount = wallet.mint(mint_url.clone(), &quote.id).await?;
+    let receive_amount = wallet
+        .mint(mint_url.clone(), &quote.id, SplitTarget::default(), None)
+        .await?;
 
     println!("Received {receive_amount} from mint {mint_url}");
 

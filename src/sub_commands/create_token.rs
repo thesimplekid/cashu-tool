@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
+use cdk::amount::SplitTarget;
 use cdk::nuts::{Conditions, CurrencyUnit, PublicKey, SpendingConditions};
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
@@ -58,7 +60,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         &mnemonic.unwrap().to_seed_normalized(""),
     );
 
-    let mints_amounts: Vec<(UncheckedUrl, Amount)> =
+    let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
         wallet.mint_balances().await?.into_iter().collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {
@@ -88,7 +90,11 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     stdin.read_line(&mut user_input)?;
     let token_amount = Amount::from(user_input.trim().parse::<u64>()?);
 
-    if token_amount.gt(&mints_amounts[mint_number as usize].1) {
+    if token_amount.gt(&mints_amounts[mint_number as usize]
+        .1
+        .get(&CurrencyUnit::Sat)
+        .unwrap())
+    {
         bail!("Not enough funds");
     }
 
@@ -170,9 +176,10 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     let token = wallet
         .send(
             &mint_url,
-            &CurrencyUnit::Sat,
+            CurrencyUnit::Sat,
             sub_command_args.memo.clone(),
             token_amount,
+            &SplitTarget::default(),
             conditions,
         )
         .await?;

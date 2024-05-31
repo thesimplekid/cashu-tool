@@ -1,12 +1,15 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{fs, io, println};
 
 use anyhow::{bail, Result};
+use cdk::amount::SplitTarget;
+use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
-use cdk::{Amount, Bolt11Invoice, Mnemonic};
+use cdk::{Bolt11Invoice, Mnemonic};
 use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
@@ -40,7 +43,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         &mnemonic.unwrap().to_seed_normalized(""),
     );
 
-    let mints_amounts: Vec<(UncheckedUrl, Amount)> =
+    let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
         wallet.mint_balances().await?.into_iter().collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {
@@ -73,7 +76,12 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
     if bolt11
         .amount_milli_satoshis()
         .unwrap()
-        .gt(&(<cdk::Amount as Into<u64>>::into(mints_amounts[mint_number as usize].1) * 1000_u64))
+        .gt(&(<cdk::Amount as Into<u64>>::into(
+            *mints_amounts[mint_number as usize]
+                .1
+                .get(&CurrencyUnit::Sat)
+                .unwrap(),
+        ) * 1000_u64))
     {
         bail!("Not enough funds");
     }
@@ -85,7 +93,10 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         )
         .await?;
 
-    let melt = wallet.melt(&mint_url, &quote.id).await.unwrap();
+    let melt = wallet
+        .melt(&mint_url, &quote.id, SplitTarget::default())
+        .await
+        .unwrap();
 
     println!("Paid invoice: {}", melt.paid);
     if let Some(preimage) = melt.preimage {

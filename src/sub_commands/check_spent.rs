@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -6,7 +7,7 @@ use std::{fs, io, println};
 use anyhow::{bail, Result};
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
-use cdk::{Amount, Mnemonic};
+use cdk::Mnemonic;
 use cdk_redb::RedbWalletDatabase;
 use clap::Args;
 
@@ -39,7 +40,7 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
         &mnemonic.unwrap().to_seed_normalized(""),
     );
 
-    let mints_amounts: Vec<(UncheckedUrl, Amount)> =
+    let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
         wallet.mint_balances().await?.into_iter().collect();
 
     for (i, (mint, amount)) in mints_amounts.iter().enumerate() {

@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
-# cdk = { path = "../cdk/wallet_database/crates/cdk", features = ["wallet", "nostr"] }
-# cdk-redb = { path = "../cdk/wallet_database/crates/cdk-redb", features = ["nostr"] }
-cdk = { git = "https://github.com/cashubtc/cdk", rev = "7627136", default-features = false, features = ["wallet", "nostr"] }
-cdk-redb = { git = "https://github.com/cashubtc/cdk", rev = "7627136", default-features = false, features = ["wallet", "nostr"] }
+cdk = { path = "../cdk/nostr_consolidate/crates/cdk", features = ["wallet", "nostr"] }
+cdk-redb = { path = "../cdk/nostr_consolidate/crates/cdk-redb", features = ["nostr"] }
+# cdk = { git = "https://github.com/cashubtc/cdk", rev = "7627136", default-features = false, features = ["wallet", "nostr"] }
+# cdk-redb = { git = "https://github.com/cashubtc/cdk", rev = "7627136", default-features = false, features = ["wallet", "nostr"] }
 clap = { version = "4.4.8", features = ["derive", "env"] }
 serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
