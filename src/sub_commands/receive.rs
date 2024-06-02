@@ -47,31 +47,37 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let nostr_key = match sub_command_args.nostr_key.as_ref() {
-        Some(nostr_key) => Some(SecretKey::from_str(nostr_key)?),
-        None => None,
-    };
-
     let localstore = RedbWalletDatabase::new(&db_path)?;
     let wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
+
+    let nostr_key = match sub_command_args.nostr_key.as_ref() {
+        Some(nostr_key) => {
+            let secret_key = SecretKey::from_str(nostr_key)?;
+            wallet.add_p2pk_signing_key(secret_key.clone()).await;
+            Some(secret_key)
+        }
+        None => None,
+    };
+
+    if !sub_command_args.signing_key.is_empty() {
+        let signing_keys: Vec<SecretKey> = sub_command_args
+            .signing_key
+            .iter()
+            .map(|s| SecretKey::from_str(s).unwrap())
+            .collect();
+
+        for signing_key in signing_keys {
+            wallet.add_p2pk_signing_key(signing_key).await;
+        }
+    }
 
     let preimage = match sub_command_args.preimage.is_empty() {
         true => None,
         false => Some(sub_command_args.preimage.clone()),
-    };
-
-    let signing_key = match sub_command_args.signing_key.is_empty() {
-        false => Some(
-            sub_command_args
-                .signing_key
-                .iter()
-                .map(|s| SecretKey::from_str(s).unwrap())
-                .collect(),
-        ),
-        true => None,
     };
 
     let amount = match nostr_key {
@@ -92,7 +98,6 @@ pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
                         .as_ref()
                         .ok_or(anyhow!("Token Required"))?,
                     &SplitTarget::default(),
-                    signing_key,
                     preimage,
                 )
                 .await?

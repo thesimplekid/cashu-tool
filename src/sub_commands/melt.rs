@@ -41,6 +41,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
 
     let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =

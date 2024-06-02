@@ -40,6 +40,7 @@ pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
 
     let amount = wallet.restore(mint_url).await?;

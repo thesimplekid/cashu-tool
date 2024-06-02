@@ -38,6 +38,7 @@ pub async fn check_spent(sub_command_args: &CheckSpentSubCommand) -> Result<()> 
     let wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
 
     let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =

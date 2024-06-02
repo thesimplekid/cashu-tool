@@ -48,6 +48,7 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
 
     let quote = wallet

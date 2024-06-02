@@ -58,6 +58,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
+        vec![],
     );
 
     let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
