@@ -7,7 +7,6 @@ use clap::Args;
 #[derive(Args)]
 pub struct DecodeTokenSubCommand {
     /// Cashu Token
-    #[arg(short, long)]
     token: String,
 }
 
