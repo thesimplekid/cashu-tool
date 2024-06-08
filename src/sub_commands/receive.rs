@@ -1,16 +1,10 @@
-use std::fs;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use cdk::amount::SplitTarget;
 use cdk::nuts::SecretKey;
 use cdk::wallet::Wallet;
-use cdk::Mnemonic;
-use cdk_redb::RedbWalletDatabase;
 use clap::Args;
-
-use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
 #[derive(Args)]
 pub struct ReceiveSubCommand {
@@ -28,32 +22,9 @@ pub struct ReceiveSubCommand {
     /// Preimage
     #[arg(short, long,  action = clap::ArgAction::Append)]
     preimage: Vec<String>,
-    /// File Path to save proofs
-    #[arg(short, long)]
-    db_path: Option<String>,
 }
 
-pub async fn receive(sub_command_args: &ReceiveSubCommand) -> Result<()> {
-    let db_path = sub_command_args
-        .db_path
-        .clone()
-        .unwrap_or(DEFAULT_DB_PATH.to_string());
-
-    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
-        Ok(_) => {
-            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
-            Some(Mnemonic::from_str(&contents)?)
-        }
-        Err(_e) => None,
-    };
-
-    let localstore = RedbWalletDatabase::new(&db_path)?;
-    let wallet = Wallet::new(
-        Arc::new(localstore),
-        &mnemonic.unwrap().to_seed_normalized(""),
-        vec![],
-    );
-
+pub async fn receive(wallet: Wallet, sub_command_args: &ReceiveSubCommand) -> Result<()> {
     let nostr_key = match sub_command_args.nostr_key.as_ref() {
         Some(nostr_key) => {
             let secret_key = SecretKey::from_str(nostr_key)?;

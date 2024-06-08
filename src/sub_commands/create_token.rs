@@ -1,19 +1,15 @@
 use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
-use std::sync::Arc;
-use std::{fs, io, println};
+use std::{io, println};
 
 use anyhow::{bail, Result};
 use cdk::amount::SplitTarget;
 use cdk::nuts::{Conditions, CurrencyUnit, PublicKey, SpendingConditions};
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
-use cdk::{Amount, Mnemonic};
-use cdk_redb::RedbWalletDatabase;
+use cdk::Amount;
 use clap::Args;
-
-use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
 
 #[derive(Args)]
 pub struct CreateTokenSubCommand {
@@ -35,32 +31,9 @@ pub struct CreateTokenSubCommand {
     /// Publey to lock proofs to
     #[arg(long, action = clap::ArgAction::Append)]
     refund_keys: Vec<String>,
-    /// File Path to save proofs
-    #[arg(short, long)]
-    db_path: Option<String>,
 }
 
-pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()> {
-    let db_path = sub_command_args
-        .db_path
-        .clone()
-        .unwrap_or(DEFAULT_DB_PATH.to_string());
-
-    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
-        Ok(_) => {
-            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
-            Some(Mnemonic::from_str(&contents)?)
-        }
-        Err(_e) => None,
-    };
-
-    let localstore = RedbWalletDatabase::new(&db_path)?;
-    let mut wallet = Wallet::new(
-        Arc::new(localstore),
-        &mnemonic.unwrap().to_seed_normalized(""),
-        vec![],
-    );
-
+pub async fn create_token(wallet: Wallet, sub_command_args: &CreateTokenSubCommand) -> Result<()> {
     let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
         wallet.mint_balances().await?.into_iter().collect();
 
@@ -91,7 +64,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
     stdin.read_line(&mut user_input)?;
     let token_amount = Amount::from(user_input.trim().parse::<u64>()?);
 
-    if token_amount.gt(&mints_amounts[mint_number as usize]
+    if token_amount.gt(mints_amounts[mint_number]
         .1
         .get(&CurrencyUnit::Sat)
         .unwrap())
@@ -151,7 +124,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
 
                 let refund_keys = (!refund_keys.is_empty()).then_some(refund_keys);
 
-                let data_pubkey = pubkeys[0].clone();
+                let data_pubkey = pubkeys[0];
                 let pubkeys = pubkeys[1..].to_vec();
                 let pubkeys = (!pubkeys.is_empty()).then_some(pubkeys);
 
@@ -185,7 +158,7 @@ pub async fn create_token(sub_command_args: &CreateTokenSubCommand) -> Result<()
         )
         .await?;
 
-    println!("{}", token.to_string());
+    println!("{}", token);
 
     Ok(())
 }

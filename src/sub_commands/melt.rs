@@ -1,49 +1,20 @@
 use std::collections::HashMap;
 use std::io::Write;
 use std::str::FromStr;
-use std::sync::Arc;
-use std::{fs, io, println};
+use std::{io, println};
 
 use anyhow::{bail, Result};
 use cdk::amount::SplitTarget;
 use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
-use cdk::{Bolt11Invoice, Mnemonic};
-use cdk_redb::RedbWalletDatabase;
+use cdk::Bolt11Invoice;
 use clap::Args;
 
-use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
-
 #[derive(Args)]
-pub struct MeltSubCommand {
-    /// File Path to save proofs
-    #[arg(short, long)]
-    db_path: Option<String>,
-}
+pub struct MeltSubCommand {}
 
-pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
-    let db_path = sub_command_args
-        .db_path
-        .clone()
-        .unwrap_or(DEFAULT_DB_PATH.to_string());
-
-    let localstore = RedbWalletDatabase::new(&db_path)?;
-
-    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
-        Ok(_) => {
-            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
-            Some(Mnemonic::from_str(&contents)?)
-        }
-        Err(_e) => None,
-    };
-
-    let mut wallet = Wallet::new(
-        Arc::new(localstore),
-        &mnemonic.unwrap().to_seed_normalized(""),
-        vec![],
-    );
-
+pub async fn melt(wallet: Wallet, _sub_command_args: &MeltSubCommand) -> Result<()> {
     let mints_amounts: Vec<(UncheckedUrl, HashMap<_, _>)> =
         wallet.mint_balances().await?.into_iter().collect();
 
@@ -78,7 +49,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         .amount_milli_satoshis()
         .unwrap()
         .gt(&(<cdk::Amount as Into<u64>>::into(
-            *mints_amounts[mint_number as usize]
+            *mints_amounts[mint_number]
                 .1
                 .get(&CurrencyUnit::Sat)
                 .unwrap(),
