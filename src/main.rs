@@ -2,11 +2,14 @@ use std::fs;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use cdk::cdk_database::WalletDatabase;
 use cdk::wallet::Wallet;
-use cdk::Mnemonic;
+use cdk::{cdk_database, Mnemonic};
 use cdk_redb::RedbWalletDatabase;
+use cdk_sqlite::WalletSQLiteDatabase;
 use clap::{Parser, Subcommand};
+use rand::Rng;
 
 mod sub_commands;
 mod types;
@@ -18,6 +21,12 @@ mod types;
 #[command(version = "0.1")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// Database engine to use (sqlite/redb)
+    #[arg(short, long, default_value = "sqlite")]
+    engine: String,
+    /// Path to Seed
+    #[arg(short, long, default_value = "./seed")]
+    seed_path: String,
     /// File Path to save proofs
     #[arg(short, long)]
     db_path: Option<String>,
@@ -25,8 +34,8 @@ struct Cli {
     command: Commands,
 }
 
-const DEFAULT_DB_PATH: &str = "./cashu_tool.redb";
-const DEFAULT_SEED_PATH: &str = "./seed.txt";
+const DEFAULT_REDB_DB_PATH: &str = "./cashu_tool.redb";
+const DEFAULT_SQLITE_DB_PATH: &str = "./cashu_tool.redb";
 
 #[derive(Subcommand)]
 enum Commands {
@@ -49,22 +58,30 @@ async fn main() -> Result<()> {
     // Parse input
     let args: Cli = Cli::parse();
 
-    let db_path = args.db_path.clone().unwrap_or(DEFAULT_DB_PATH.to_string());
+    let localstore: Arc<dyn WalletDatabase<Err = cdk_database::Error> + Send + Sync> =
+        match args.engine.as_str() {
+            "sqlite" => Arc::new(RedbWalletDatabase::new(DEFAULT_REDB_DB_PATH)?),
+            "redb" => Arc::new(WalletSQLiteDatabase::new(DEFAULT_SQLITE_DB_PATH).await?),
+            _ => bail!("Unknown DB engine"),
+        };
 
-    let localstore = RedbWalletDatabase::new(&db_path)?;
-    let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
+    let mnemonic = match fs::metadata(args.seed_path.clone()) {
         Ok(_) => {
-            let contents = fs::read_to_string(DEFAULT_SEED_PATH)?;
-            Some(Mnemonic::from_str(&contents)?)
+            let contents = fs::read_to_string(args.seed_path.clone())?;
+            Mnemonic::from_str(&contents)?
         }
-        Err(_e) => None,
+        Err(_e) => {
+            let mut rng = rand::thread_rng();
+            let random_bytes: [u8; 32] = rng.gen();
+
+            let mnemnic = Mnemonic::from_entropy(&random_bytes)?;
+            tracing::info!("Using randomly generated seed you will not be able to restore");
+
+            mnemnic
+        }
     };
 
-    let wallet = Wallet::new(
-        Arc::new(localstore),
-        &mnemonic.unwrap().to_seed_normalized(""),
-        vec![],
-    );
+    let wallet = Wallet::new(localstore, &mnemonic.to_seed_normalized(""), vec![]);
 
     match &args.command {
         Commands::DecodeToken(sub_command_args) => {
