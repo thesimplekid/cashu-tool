@@ -10,7 +10,7 @@ use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
 use cdk::{Bolt11Invoice, Mnemonic};
-use cdk_redb::RedbWalletDatabase;
+use cdk_sqlite::WalletSQLiteDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -28,7 +28,7 @@ pub async fn melt(sub_command_args: &MeltSubCommand) -> Result<()> {
         .clone()
         .unwrap_or(DEFAULT_DB_PATH.to_string());
 
-    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let localstore = WalletSQLiteDatabase::new(&db_path).await?;
 
     let mnemonic = match fs::metadata(DEFAULT_SEED_PATH) {
         Ok(_) => {

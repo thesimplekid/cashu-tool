@@ -6,7 +6,7 @@ use anyhow::Result;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
 use cdk::Mnemonic;
-use cdk_redb::RedbWalletDatabase;
+use cdk_sqlite::WalletSQLiteDatabase;
 use clap::Args;
 
 use crate::{DEFAULT_DB_PATH, DEFAULT_SEED_PATH};
@@ -36,7 +36,7 @@ pub async fn restore(sub_command_args: &RestoreSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let localstore = WalletSQLiteDatabase::new(&db_path).await?;
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),

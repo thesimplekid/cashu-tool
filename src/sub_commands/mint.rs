@@ -9,7 +9,7 @@ use cdk::nuts::CurrencyUnit;
 use cdk::url::UncheckedUrl;
 use cdk::wallet::Wallet;
 use cdk::{Amount, Mnemonic};
-use cdk_redb::RedbWalletDatabase;
+use cdk_sqlite::WalletSQLiteDatabase;
 use clap::Args;
 use tokio::time::sleep;
 
@@ -44,7 +44,7 @@ pub async fn mint(sub_command_args: &MintSubCommand) -> Result<()> {
         Err(_e) => None,
     };
 
-    let localstore = RedbWalletDatabase::new(&db_path)?;
+    let localstore = WalletSQLiteDatabase::new(&db_path).await?;
     let mut wallet = Wallet::new(
         Arc::new(localstore),
         &mnemonic.unwrap().to_seed_normalized(""),
