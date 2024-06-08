@@ -39,20 +39,28 @@ const DEFAULT_SQLITE_DB_PATH: &str = "./cashu_tool.redb";
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Decode a token
     DecodeToken(sub_commands::decode_token::DecodeTokenSubCommand),
+    /// Pay bolt11 invoice
     Melt(sub_commands::melt::MeltSubCommand),
+    /// Receive token
     Receive(sub_commands::receive::ReceiveSubCommand),
+    /// Create token from wallet balance
     CreateToken(sub_commands::create_token::CreateTokenSubCommand),
+    /// Check if wallet balance is spendable
     CheckSpendable,
+    /// View mint info
     MintInfo(sub_commands::mint_info::MintInfoSubcommand),
+    /// Mint proofs via bolt11
     Mint(sub_commands::mint::MintSubCommand),
+    /// Restore proofs from seed
     Restore(sub_commands::restore::RestoreSubCommand),
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::WARN)
         .init();
 
     // Parse input

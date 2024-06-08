@@ -11,10 +11,13 @@ use tokio::time::sleep;
 
 #[derive(Args)]
 pub struct MintSubCommand {
+    /// Amount
     #[arg(short, long)]
     amount: u64,
+    /// Currency unit e.g. sat
     #[arg(short, long)]
     unit: String,
+    /// Mint url
     #[arg(short, long)]
     mint_url: UncheckedUrl,
 }
