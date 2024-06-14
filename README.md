@@ -1,3 +1,8 @@
+
+> **Moved**
+
+This tool has moved to [cdk-cli](https://github.com/cashubtc/cdk/tree/main/crates/cdk-cli)
+
 > **Warning**
 > This project is in early development, it does however work with real sats! Always use amounts you don't mind loosing.
 
